@@ -9,6 +9,12 @@ namespace Kiota.Builder.Lock;
 /// A class that represents a lock file for a Kiota project.
 /// </summary>
 public class KiotaLock {
+
+#if BUILT_FOR_WASM
+    public static readonly string KiotaVersionDefault = Assembly.GetEntryAssembly().GetName().Version.ToString();
+#else
+    public static readonly string KiotaVersionDefault = "unknown";
+#endif
     /// <summary>
     /// The OpenAPI description hash that generated this client.
     /// </summary>
@@ -24,7 +30,7 @@ public class KiotaLock {
     /// <summary>
     /// The version of the Kiota generator that generated this client.
     /// </summary>
-    public string KiotaVersion { get; set; } = Assembly.GetEntryAssembly().GetName().Version.ToString();
+    public string KiotaVersion { get; set; } = KiotaVersionDefault;
     /// <summary>
     /// The main class name for this client.
     /// </summary>
