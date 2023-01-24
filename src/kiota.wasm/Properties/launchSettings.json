@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "kiota": {
+      "commandName": "Project",
+      "commandLineArgs": "--openapi C:\\src\\msgraph-sdk-powershell\\openApiDocs\\v1.0\\mail.yml -o C:\\Users\\darrmi\\source\\github\\darrelmiller\\OpenApiClient\\Generated -c GraphClient --loglevel Information"
+    }
+  }
+}

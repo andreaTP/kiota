@@ -44,7 +44,6 @@ public class KiotaBuilder
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(config);
-        ArgumentNullException.ThrowIfNull(client);
         this.logger = logger;
         this.config = config;
         this.httpClient = client;
