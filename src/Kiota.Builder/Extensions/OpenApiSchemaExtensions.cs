@@ -190,7 +190,7 @@ public static class OpenApiSchemaExtensions
             else if (schema.AllOf.Any(allOfEvaluatorForMappings) && schema.AllOf.Last().Equals(schema.AllOf.Last(allOfEvaluatorForMappings)))
                 // ensure the matched AllOf entry is the last in the list
                 return GetDiscriminatorMappings(schema.AllOf.Last(allOfEvaluatorForMappings), inheritanceIndex);
-            else if (!string.IsNullOrEmpty(schema.Reference?.Id))
+            else if (!string.IsNullOrEmpty(schema.Reference?.Id) && schema.IsODataPrimitiveType())
                 return GetAllInheritanceSchemaReferences(schema.Reference.Id, inheritanceIndex)
                            .Where(static x => !string.IsNullOrEmpty(x))
                            .Select(x => KeyValuePair.Create(x, x))
