@@ -24,6 +24,45 @@ paths:
                 $ref: "#/components/schemas/app-permissions"
           description: Test
       description: Returns a app permissions
+
+  /foo/{x}/bar/{y}:
+    get:
+      responses:
+        "200":
+          description: Something
+          content:
+            type: string
+      parameters:
+        - in: path
+          name: x
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: y
+          required: true
+          schema:
+            type: string
+
+  /baz/{x}/{y}:
+    get:
+      responses:
+        "200":
+          description: Something
+          content:
+            type: string
+      parameters:
+        - in: path
+          name: x
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: y
+          required: true
+          schema:
+            type: string
+
 components:
   schemas:
     app-permissions:

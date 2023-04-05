@@ -83,6 +83,7 @@
     ]
   },
   "./tests/Kiota.Builder.IntegrationTests/NoUnderscoresInModel.yaml": {
+    "MockServerITFolder": "no-underscores",
     "Suppressions": [
       {
         "Language": "ruby",
