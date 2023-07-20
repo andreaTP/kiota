@@ -175,6 +175,7 @@ components:
                 DisabledValidationRules = new(),
                 CleanOutput = true,
                 ClearCache = true,
+                MaxDegreeOfParallelism = 1
             };
 
             Console.WriteLine("6");
