@@ -11,6 +11,7 @@ using Kiota.Builder;
 using Kiota.Builder.Extensions;
 
 using Microsoft.Extensions.Logging;
+using Zio.FileSystems;
 
 namespace kiota.Handlers;
 
@@ -121,7 +122,7 @@ internal class KiotaGenerationCommandHandler : BaseKiotaCommandHandler
 
             try
             {
-                var result = await new KiotaBuilder(logger, Configuration.Generation, httpClient).GenerateClientAsync(cancellationToken);
+                var result = await new KiotaBuilder(logger, Configuration.Generation, httpClient, new PhysicalFileSystem()).GenerateClientAsync(cancellationToken);
                 if (result)
                     DisplaySuccess("Generation completed successfully");
                 else

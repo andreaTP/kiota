@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Kiota.Builder;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Services;
+using Zio.FileSystems;
 
 namespace kiota.Handlers;
 internal class KiotaShowCommandHandler : KiotaSearchBasedCommandHandler
@@ -79,7 +80,7 @@ internal class KiotaShowCommandHandler : KiotaSearchBasedCommandHandler
             Configuration.Generation.ClearCache = clearCache;
             try
             {
-                var urlTreeNode = await new KiotaBuilder(logger, Configuration.Generation, httpClient).GetUrlTreeNodeAsync(cancellationToken);
+                var urlTreeNode = await new KiotaBuilder(logger, Configuration.Generation, httpClient, new PhysicalFileSystem()).GetUrlTreeNodeAsync(cancellationToken);
 
                 var builder = new StringBuilder();
                 if (urlTreeNode != null)

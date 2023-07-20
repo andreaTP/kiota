@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifier>wasi-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <PublishTrimmed>true</PublishTrimmed>
+    <!-- <PublishTrimmed>false</PublishTrimmed> -->
+    <WasmSingleFileBundle>true</WasmSingleFileBundle>
+    <!-- experiments -->
+    <!-- <RunAOTCompilation>true</RunAOTCompilation> -->
+    <!-- <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <WasmEnableSIMD>false</WasmEnableSIMD> -->
+    <!-- <WasmEnableExceptionHandling>false</WasmEnableExceptionHandling>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <WasmEnableSIMD>false</WasmEnableSIMD> -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kiota.Builder\Kiota.Builder.csproj" />
+  </ItemGroup>
+
+  <Target Name="CopyWasiModuleToExtensionPath" AfterTargets="_WasiGenerateAppBundle"
+    Condition="'$(ExampleWasmPublishPath)' != ''">
+    <PropertyGroup>
+      <ExpectedWasiModule>$(WasmAppDir)$(MSBuildProjectName).wasm</ExpectedWasiModule>
+      <ExampleWasmPublishFullPath>$([MSBuild]::NormalizePath('$(ExampleWasmPublishPath)'))</ExampleWasmPublishFullPath>
+    </PropertyGroup>
+    <Message Importance="High"
+      Text="Copying the file from $(ExpectedWasiModule) to $(ExampleWasmPublishFullPath)" />
+    <Error Text="$(ExpectedWasiModule) doesn't exist" Condition="!Exists($(ExpectedWasiModule))" />
+    <Copy SourceFiles="$(ExpectedWasiModule)" DestinationFolder="$(ExampleWasmPublishFullPath)"
+      SkipUnchangedFiles="true" />
+  </Target>
+</Project>

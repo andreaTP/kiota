@@ -26,7 +26,8 @@
     <Description>The core engine behind the OpenAPI based client generator.</Description>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageTags>OpenAPI .NET CSharp TypeScript Java Go PHP Python REST API</PackageTags>
-    <SignAssembly>true</SignAssembly>
+    <!-- TODO: restore me <SignAssembly>true</SignAssembly> -->
+    <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Microsoft.OpenApi.snk</AssemblyOriginatorKeyFile>
     <IsTrimmable>true</IsTrimmable>
     <AnalysisMode>All</AnalysisMode>
@@ -53,6 +54,7 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
     <PackageReference Include="YamlDotNet" Version="13.1.1" />
+    <PackageReference Include="Zio" Version="0.16.2" />
     <ProjectReference Include="..\Kiota.Generated\KiotaGenerated.csproj" OutputItemType="Analyzer"
       ReferenceOutputAssembly="false" />
   </ItemGroup>

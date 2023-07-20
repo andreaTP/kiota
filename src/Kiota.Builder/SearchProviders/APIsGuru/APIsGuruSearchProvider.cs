@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Kiota.Builder.Caching;
 using Microsoft.Extensions.Logging;
+using Zio;
 
 namespace Kiota.Builder.SearchProviders.APIsGuru;
 
@@ -15,12 +16,13 @@ public class APIsGuruSearchProvider : ISearchProvider
 {
     private readonly Uri SearchUri;
     private readonly DocumentCachingProvider cachingProvider;
-    public APIsGuruSearchProvider(Uri searchUri, HttpClient httpClient, ILogger logger, bool clearCache)
+    public APIsGuruSearchProvider(Uri searchUri, HttpClient httpClient, ILogger logger, bool clearCache, IFileSystem fs)
     {
         ArgumentNullException.ThrowIfNull(searchUri);
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(logger);
-        cachingProvider = new DocumentCachingProvider(httpClient, logger)
+        ArgumentNullException.ThrowIfNull(fs);
+        cachingProvider = new DocumentCachingProvider(httpClient, logger, fs)
         {
             ClearCache = clearCache,
         };

@@ -10,24 +10,28 @@ using Kiota.Builder.SearchProviders.GitHub.Authentication;
 using Kiota.Builder.SearchProviders.GitHub.GitHubClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Http.HttpClientLibrary;
+using Zio;
 
 namespace Kiota.Builder;
 
 public class UpdateService
 {
+    private readonly IFileSystem _fs;
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
     private readonly UpdateConfiguration _updateConfiguration;
     private readonly VersionComparer _versionComparer = new();
     private static readonly string _lastVerificationFilePath = Path.Combine(Path.GetTempPath(), Constants.TempDirectoryName, "update", "timestamp.txt");
-    public UpdateService(HttpClient httpClient, ILogger logger, UpdateConfiguration updateConfiguration)
+    public UpdateService(HttpClient httpClient, ILogger logger, UpdateConfiguration updateConfiguration, IFileSystem fs)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(updateConfiguration);
+        ArgumentNullException.ThrowIfNull(fs);
         _httpClient = httpClient;
         _logger = logger;
         _updateConfiguration = updateConfiguration;
+        _fs = fs;
     }
     public async Task<string> GetUpdateMessageAsync(string currentVersion, CancellationToken cancellationToken)
     {
@@ -35,7 +39,7 @@ public class UpdateService
             return string.Empty;
         try
         {
-            var lastVerificationDate = await GetLastVerificationDateAsync(cancellationToken).ConfigureAwait(false);
+            var lastVerificationDate = GetLastVerificationDate();
             if (!ShouldCheckForUpdates(lastVerificationDate)) return string.Empty;
             using var requestAdapter = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: _httpClient);
             var gitHubClient = new GitHubClient(requestAdapter);
@@ -49,7 +53,7 @@ public class UpdateService
             if (latestVersion is null) return string.Empty;
             var currentVersionParsed = GetVersionFromLabel(currentVersion);
             if (currentVersionParsed is null) return string.Empty;
-            await SetLastVerificationDateAsync(DateTimeOffset.UtcNow, cancellationToken).ConfigureAwait(false);
+            SetLastVerificationDate(DateTimeOffset.UtcNow);
             if (_versionComparer.Compare(currentVersionParsed, latestVersion) < 0)
                 return $"A newer version of Kiota ({latestVersion}) is available. You are currently using version {currentVersion}. https://aka.ms/get/kiota";
         }
@@ -61,29 +65,29 @@ public class UpdateService
         }
         return string.Empty;
     }
-    private static async Task<DateTimeOffset> GetLastVerificationDateAsync(CancellationToken cancellationToken)
+    private DateTimeOffset GetLastVerificationDate()
     {
-        if (File.Exists(_lastVerificationFilePath))
+        if (_fs.FileExists(_lastVerificationFilePath))
         {
-            var lastVerificationDate = await File.ReadAllTextAsync(_lastVerificationFilePath, cancellationToken).ConfigureAwait(false);
+            var lastVerificationDate = _fs.ReadAllText(_lastVerificationFilePath);
             if (DateTimeOffset.TryParse(lastVerificationDate, out var parsedDate))
                 return parsedDate;
         }
         return DateTimeOffset.MinValue;
 
     }
-    private static async Task SetLastVerificationDateAsync(DateTimeOffset date, CancellationToken cancellationToken)
+    private void SetLastVerificationDate(DateTimeOffset date)
     {
         ClearVerificationDate();
         var directoryPath = Path.GetDirectoryName(_lastVerificationFilePath);
-        if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
-            Directory.CreateDirectory(directoryPath);
-        await File.WriteAllTextAsync(_lastVerificationFilePath, date.ToString("o"), cancellationToken).ConfigureAwait(false);
+        if (!string.IsNullOrEmpty(directoryPath) && !_fs.DirectoryExists(directoryPath))
+            _fs.CreateDirectory(directoryPath);
+        _fs.WriteAllText(_lastVerificationFilePath, date.ToString("o"));
     }
-    internal static void ClearVerificationDate()
+    internal void ClearVerificationDate()
     {
-        if (File.Exists(_lastVerificationFilePath))
-            File.Delete(_lastVerificationFilePath);
+        if (_fs.FileExists(_lastVerificationFilePath))
+            _fs.DeleteFile(_lastVerificationFilePath);
     }
     private static bool ShouldCheckForUpdates(DateTimeOffset lastVerificationDate)
     {

@@ -30,6 +30,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Readers;
 using Microsoft.OpenApi.Services;
 using Microsoft.OpenApi.Validations;
+using Zio;
 using HttpMethod = Kiota.Builder.CodeDOM.HttpMethod;
 
 namespace Kiota.Builder;
@@ -37,6 +38,8 @@ namespace Kiota.Builder;
 public partial class KiotaBuilder
 {
     private readonly ILogger<KiotaBuilder> logger;
+
+    private readonly IFileSystem fs;
     private readonly GenerationConfiguration config;
     private readonly ParallelOptions parallelOptions;
     private readonly HttpClient httpClient;
@@ -44,13 +47,17 @@ public partial class KiotaBuilder
     private OpenApiDocument? openApiDocument;
     internal void SetOpenApiDocument(OpenApiDocument document) => openApiDocument = document ?? throw new ArgumentNullException(nameof(document));
 
-    public KiotaBuilder(ILogger<KiotaBuilder> logger, GenerationConfiguration config, HttpClient client)
+    public KiotaBuilder(ILogger<KiotaBuilder> logger, GenerationConfiguration config, HttpClient client, IFileSystem fs)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(config);
-        ArgumentNullException.ThrowIfNull(client);
+        // TODO: fix this properly ...
+        // ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(fs);
         this.logger = logger;
         this.config = config;
+        this.fs = fs;
+        lockManagementService = new(fs);
         httpClient = client;
         parallelOptions = new ParallelOptions
         {
@@ -59,16 +66,16 @@ public partial class KiotaBuilder
     }
     private async Task CleanOutputDirectory(CancellationToken cancellationToken)
     {
-        if (config.CleanOutput && Directory.Exists(config.OutputPath))
+        if (config.CleanOutput && fs.DirectoryExists(config.OutputPath))
         {
             logger.LogInformation("Cleaning output directory {Path}", config.OutputPath);
             // not using Directory.Delete on the main directory because it's locked when mapped in a container
-            foreach (var subDir in Directory.EnumerateDirectories(config.OutputPath))
-                Directory.Delete(subDir, true);
+            foreach (var subDir in fs.EnumeratePaths(config.OutputPath, "*", System.IO.SearchOption.AllDirectories, SearchTarget.Directory))
+                fs.DeleteDirectory(subDir, true);
             await lockManagementService.BackupLockFileAsync(config.OutputPath, cancellationToken).ConfigureAwait(false);
-            foreach (var subFile in Directory.EnumerateFiles(config.OutputPath)
-                                            .Where(x => !x.EndsWith(FileLogLogger.LogFileName, StringComparison.OrdinalIgnoreCase)))
-                File.Delete(subFile);
+            foreach (var subFile in fs.EnumeratePaths(config.OutputPath, "*", System.IO.SearchOption.AllDirectories, SearchTarget.File)
+                                            .Where(x => !x.FullName.EndsWith(FileLogLogger.LogFileName, StringComparison.OrdinalIgnoreCase)))
+                fs.DeleteFile(subFile);
         }
     }
     public async Task<OpenApiUrlTreeNode?> GetUrlTreeNodeAsync(CancellationToken cancellationToken)
@@ -188,7 +195,7 @@ public partial class KiotaBuilder
         {
             await CleanOutputDirectory(cancellationToken).ConfigureAwait(false);
             // doing this verification at the beginning to give immediate feedback to the user
-            Directory.CreateDirectory(config.OutputPath);
+            fs.CreateDirectory(config.OutputPath);
         }
         catch (Exception ex)
         {
@@ -230,7 +237,7 @@ public partial class KiotaBuilder
         }
         return true;
     }
-    private readonly LockManagementService lockManagementService = new();
+    private readonly LockManagementService lockManagementService;
     private async Task UpdateLockFile(CancellationToken cancellationToken)
     {
         var configurationLock = new KiotaLock(config)
@@ -347,7 +354,7 @@ public partial class KiotaBuilder
         if (inputPath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             try
             {
-                var cachingProvider = new DocumentCachingProvider(httpClient, logger)
+                var cachingProvider = new DocumentCachingProvider(httpClient, logger, fs)
                 {
                     ClearCache = config.ClearCache,
                 };
@@ -363,7 +370,7 @@ public partial class KiotaBuilder
             try
             {
 #pragma warning disable CA2000 // disposed by caller
-                input = new FileStream(inputPath, FileMode.Open);
+                input = fs.OpenFile(inputPath, FileMode.Open, FileAccess.Read);
 #pragma warning restore CA2000
             }
             catch (Exception ex) when (ex is FileNotFoundException ||

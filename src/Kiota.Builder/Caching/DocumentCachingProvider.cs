@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NeoSmart.AsyncLock;
+using Zio;
 
 namespace Kiota.Builder.Caching;
 
@@ -18,15 +19,18 @@ public class DocumentCachingProvider
     {
         get; set;
     }
+    private readonly IFileSystem Fs;
     private readonly HttpClient HttpClient;
     private readonly ILogger Logger;
     public TimeSpan Duration { get; set; } = TimeSpan.FromHours(1);
-    public DocumentCachingProvider(HttpClient client, ILogger logger)
+    public DocumentCachingProvider(HttpClient client, ILogger logger, IFileSystem fs)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(fs);
         HttpClient = client;
         Logger = logger;
+        Fs = fs;
     }
     public Task<Stream> GetDocumentAsync(Uri documentUri, string intermediateFolderName, string fileName, string? accept = null, CancellationToken cancellationToken = default)
     {
@@ -42,21 +46,21 @@ public class DocumentCachingProvider
         var currentLock = _locks.GetOrAdd(target, _ => new AsyncLock());
         using (await currentLock.LockAsync(token).ConfigureAwait(false))
         {// if multiple clients are being updated for the same description, we'll have concurrent download of the file without the lock
-            if (!File.Exists(target) || couldNotDelete)
+            if (!Fs.FileExists(target) || couldNotDelete)
                 return await DownloadDocumentFromSourceAsync(documentUri, target, accept, token).ConfigureAwait(false);
 
-            var lastModificationDate = File.GetLastWriteTime(target);
+            var lastModificationDate = Fs.GetLastWriteTime(target);
             if (lastModificationDate.Add(Duration) > DateTime.Now && !ClearCache)
             {
                 Logger.LogDebug("cache file {CacheFile} is up to date and clearCache is {ClearCache}, using it", target, ClearCache);
-                return File.OpenRead(target);
+                return Fs.OpenFile(target, FileMode.Open, FileAccess.ReadWrite);
             }
             else
             {
                 Logger.LogDebug("cache file {CacheFile} is out of date, downloading from {Url}", target, documentUri);
                 try
                 {
-                    File.Delete(target);
+                    Fs.DeleteFile(target);
                 }
                 catch (IOException ex)
                 {
@@ -72,8 +76,8 @@ public class DocumentCachingProvider
     {
         Logger.LogDebug("cache file {CacheFile} not found, downloading from {Url}", target, documentUri);
         var directory = Path.GetDirectoryName(target);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-            Directory.CreateDirectory(directory);
+        if (!string.IsNullOrEmpty(directory) && !Fs.DirectoryExists(directory))
+            Fs.CreateDirectory(directory);
         Stream content = Stream.Null;
         try
         {
@@ -85,7 +89,7 @@ public class DocumentCachingProvider
             content = new MemoryStream();
             await responseMessage.Content.CopyToAsync(content, token).ConfigureAwait(false);
 #pragma warning disable CA2007
-            await using var fileStream = File.Create(target);
+            await using var fileStream = Fs.CreateFile(target);
 #pragma warning restore CA2007
             content.Position = 0;
             await content.CopyToAsync(fileStream, token).ConfigureAwait(false);

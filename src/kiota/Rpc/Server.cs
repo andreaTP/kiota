@@ -13,6 +13,7 @@ using Kiota.Generated;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Services;
+using Zio.FileSystems;
 
 namespace kiota.Rpc;
 internal class Server : IServer
@@ -82,7 +83,7 @@ internal class Server : IServer
     {
         using var fileLogger = new FileLogLogger<KiotaBuilder>(config.OutputPath, LogLevel.Warning);
         var logger = new AggregateLogger<KiotaBuilder>(globalLogger, fileLogger);
-        return await new KiotaBuilder(logger, config, httpClient).GenerateClientAsync(cancellationToken);
+        return await new KiotaBuilder(logger, config, httpClient, new PhysicalFileSystem()).GenerateClientAsync(cancellationToken);
     }
     public async Task<SearchOperationResult> SearchAsync(string searchTerm, CancellationToken cancellationToken)
     {
@@ -99,7 +100,7 @@ internal class Server : IServer
         configuration.IncludePatterns = includeFilters.ToHashSet();
         configuration.ExcludePatterns = excludeFilters.ToHashSet();
         configuration.OpenAPIFilePath = GetAbsolutePath(descriptionPath);
-        var builder = new KiotaBuilder(logger, configuration, httpClient);
+        var builder = new KiotaBuilder(logger, configuration, httpClient, new PhysicalFileSystem());
         var urlTreeNode = await builder.GetUrlTreeNodeAsync(cancellationToken);
         var rootNode = urlTreeNode != null ? ConvertOpenApiUrlTreeNodeToPathItem(urlTreeNode) : null;
         return new ShowResult(logger.LogEntries, rootNode, builder.OriginalOpenApiDocument?.Info?.Title);
@@ -146,7 +147,7 @@ internal class Server : IServer
         var configuration = Configuration.Generation;
         configuration.OpenAPIFilePath = GetAbsolutePath(descriptionPath);
         configuration.Language = language;
-        var builder = new KiotaBuilder(logger, configuration, httpClient);
+        var builder = new KiotaBuilder(logger, configuration, httpClient, new PhysicalFileSystem());
         var result = await builder.GetLanguagesInformationAsync(cancellationToken);
         if (result is not null) return result;
         return Configuration.Languages;

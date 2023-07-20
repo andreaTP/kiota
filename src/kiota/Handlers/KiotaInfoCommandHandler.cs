@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Kiota.Builder;
 using Kiota.Builder.Configuration;
 using Microsoft.Extensions.Logging;
+using Zio.FileSystems;
 
 namespace kiota.Handlers;
 internal class KiotaInfoCommandHandler : KiotaSearchBasedCommandHandler
@@ -73,7 +74,7 @@ internal class KiotaInfoCommandHandler : KiotaSearchBasedCommandHandler
             if (!string.IsNullOrEmpty(openapi))
                 try
                 {
-                    var builder = new KiotaBuilder(logger, Configuration.Generation, httpClient);
+                    var builder = new KiotaBuilder(logger, Configuration.Generation, httpClient, new PhysicalFileSystem());
                     var result = await builder.GetLanguagesInformationAsync(cancellationToken);
                     if (result != null)
                         instructions = result;

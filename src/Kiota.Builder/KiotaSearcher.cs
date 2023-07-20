@@ -11,6 +11,7 @@ using Kiota.Builder.SearchProviders.GitHub;
 using Kiota.Builder.SearchProviders.MSGraph;
 using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions.Authentication;
+using Zio;
 
 namespace Kiota.Builder;
 
@@ -19,17 +20,20 @@ public class KiotaSearcher
     private readonly ILogger<KiotaSearcher> _logger;
     private readonly SearchConfiguration _config;
     private readonly HttpClient _httpClient;
+    private readonly IFileSystem _fs;
     private readonly IAuthenticationProvider? _gitHubAuthenticationProvider;
     private readonly Func<CancellationToken, Task<bool>> _isGitHubSignedInCallBack;
 
-    public KiotaSearcher(ILogger<KiotaSearcher> logger, SearchConfiguration config, HttpClient httpClient, IAuthenticationProvider? gitHubAuthenticationProvider, Func<CancellationToken, Task<bool>> isGitHubSignedInCallBack)
+    public KiotaSearcher(ILogger<KiotaSearcher> logger, SearchConfiguration config, HttpClient httpClient, IAuthenticationProvider? gitHubAuthenticationProvider, Func<CancellationToken, Task<bool>> isGitHubSignedInCallBack, IFileSystem fs)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(fs);
         _logger = logger;
         _config = config;
         _httpClient = httpClient;
+        _fs = fs;
         _gitHubAuthenticationProvider = gitHubAuthenticationProvider;
         _isGitHubSignedInCallBack = isGitHubSignedInCallBack;
     }
@@ -40,11 +44,11 @@ public class KiotaSearcher
             _logger.LogError("no search term provided");
             return new Dictionary<string, SearchResult>();
         }
-        var apiGurusSearchProvider = new APIsGuruSearchProvider(_config.APIsGuruListUrl, _httpClient, _logger, _config.ClearCache);
+        var apiGurusSearchProvider = new APIsGuruSearchProvider(_config.APIsGuruListUrl, _httpClient, _logger, _config.ClearCache, _fs);
         _logger.LogDebug("searching for {SearchTerm}", searchTerm);
         _logger.LogDebug("searching APIs.guru with url {Url}", _config.APIsGuruListUrl);
         var oasProvider = new OpenApiSpecSearchProvider();
-        var githubProvider = new GitHubSearchProvider(_httpClient, _logger, _config.ClearCache, _config.GitHub, _gitHubAuthenticationProvider, _isGitHubSignedInCallBack);
+        var githubProvider = new GitHubSearchProvider(_httpClient, _logger, _config.ClearCache, _config.GitHub, _gitHubAuthenticationProvider, _isGitHubSignedInCallBack, _fs);
         var results = await Task.WhenAll(
                         SearchProviderAsync(searchTerm, version, apiGurusSearchProvider, cancellationToken),
                         SearchProviderAsync(searchTerm, version, oasProvider, cancellationToken),

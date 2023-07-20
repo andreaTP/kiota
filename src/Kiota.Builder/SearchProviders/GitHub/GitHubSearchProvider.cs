@@ -17,6 +17,7 @@ using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
 using SharpYaml;
 using YamlDotNet.Serialization;
+using Zio;
 
 namespace Kiota.Builder.SearchProviders.GitHub;
 
@@ -27,13 +28,14 @@ public class GitHubSearchProvider : ISearchProvider
     private readonly Uri _blockListUrl;
     private readonly IAuthenticationProvider? _authenticatedAuthenticationProvider;
     private readonly Func<CancellationToken, Task<bool>> _isSignedInCallback;
-    public GitHubSearchProvider(HttpClient httpClient, ILogger logger, bool clearCache, GitHubConfiguration configuration, IAuthenticationProvider? authenticatedAuthenticationProvider, Func<CancellationToken, Task<bool>> isSignedInCallBack)
+    public GitHubSearchProvider(HttpClient httpClient, ILogger logger, bool clearCache, GitHubConfiguration configuration, IAuthenticationProvider? authenticatedAuthenticationProvider, Func<CancellationToken, Task<bool>> isSignedInCallBack, IFileSystem fs)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configuration.BlockListUrl);
         ArgumentNullException.ThrowIfNull(logger);
-        documentCachingProvider = new DocumentCachingProvider(httpClient, logger)
+        ArgumentNullException.ThrowIfNull(fs);
+        documentCachingProvider = new DocumentCachingProvider(httpClient, logger, fs)
         {
             ClearCache = clearCache,
         };

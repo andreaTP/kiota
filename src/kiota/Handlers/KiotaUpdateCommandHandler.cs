@@ -8,6 +8,7 @@ using Kiota.Builder;
 using Kiota.Builder.Configuration;
 using Kiota.Builder.Lock;
 using Microsoft.Extensions.Logging;
+using Zio.FileSystems;
 
 namespace kiota.Handlers;
 
@@ -90,7 +91,7 @@ internal class KiotaUpdateCommandHandler : BaseKiotaCommandHandler
         var (loggerFactory, logger) = GetLoggerAndFactory<KiotaBuilder>(context, config.OutputPath);
         using (loggerFactory)
         {
-            return await new KiotaBuilder(logger, config, httpClient).GenerateClientAsync(cancellationToken);
+            return await new KiotaBuilder(logger, config, httpClient, new PhysicalFileSystem()).GenerateClientAsync(cancellationToken);
         }
     }
 }

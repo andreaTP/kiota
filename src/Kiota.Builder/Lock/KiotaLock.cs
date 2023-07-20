@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Kiota.Builder.Configuration;
+using Zio;
 
 namespace Kiota.Builder.Lock;
 

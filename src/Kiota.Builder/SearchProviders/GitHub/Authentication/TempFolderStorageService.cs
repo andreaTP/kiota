@@ -24,6 +24,7 @@ public class TempFolderTokenStorageService : ITokenStorageService
             var target = GetTokenCacheFilePath();
             if (!await IsTokenPresentAsync(cancellationToken).ConfigureAwait(false))
                 return null;
+            // TODO: fixme!
             var result = await File.ReadAllTextAsync(target, cancellationToken).ConfigureAwait(false);
             return result;
         }
