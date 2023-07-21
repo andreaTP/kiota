@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Kiota.Builder.CodeDOM;
 using Kiota.Builder.Configuration;
 using Kiota.Builder.Writers;
+using Zio;
 
 namespace Kiota.Builder.CodeRenderers;
 
@@ -15,9 +16,12 @@ namespace Kiota.Builder.CodeRenderers;
 /// </summary>
 public class CodeRenderer
 {
-    public CodeRenderer(GenerationConfiguration configuration, CodeElementOrderComparer? elementComparer = null)
+    private readonly IFileSystem fs;
+    public CodeRenderer(GenerationConfiguration configuration, IFileSystem fs, CodeElementOrderComparer? elementComparer = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(fs);
+        this.fs = fs;
         Configuration = configuration;
         _rendererElementComparer = elementComparer ?? (configuration.ShouldRenderMethodsOutsideOfClasses ? new CodeElementOrderComparerWithExternalMethods() : new CodeElementOrderComparer());
     }
@@ -27,14 +31,23 @@ public class CodeRenderer
         ArgumentNullException.ThrowIfNull(codeElement);
         ArgumentException.ThrowIfNullOrEmpty(outputFile);
 #pragma warning disable CA2007
-        await using var stream = new FileStream(outputFile, FileMode.Create);
+        await using var stream = fs.OpenFile(outputFile, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+        // await using var stream = new FileStream(outputFile, FileMode.Create);
 #pragma warning restore CA2007
 
-        var sw = new StreamWriter(stream);
+        var sw = new StreamWriter(stream)
+        {
+            AutoFlush = true, // let's try to use autoflush here ...
+        };
         writer.SetTextWriter(sw);
         RenderCode(writer, codeElement);
-        if (!cancellationToken.IsCancellationRequested)
-            await sw.FlushAsync().ConfigureAwait(false); // stream writer doesn't not have a cancellation token overload https://github.com/dotnet/runtime/issues/64340
+
+        // TODO: FIXME: HACK: making this sync again ...
+        // var sw = new StreamWriter(stream);
+        // writer.SetTextWriter(sw);
+        // RenderCode(writer, codeElement);
+        // if (!cancellationToken.IsCancellationRequested)
+        //     await sw.FlushAsync().ConfigureAwait(false); // stream writer doesn't not have a cancellation token overload https://github.com/dotnet/runtime/issues/64340
     }
     // We created barrels for code namespaces. Skipping for empty namespaces, ones created for users, and ones with same namespace as class name.
     public async Task RenderCodeNamespaceToFilePerClassAsync(LanguageWriter writer, CodeNamespace currentNamespace, CancellationToken cancellationToken)
@@ -98,14 +111,14 @@ public class CodeRenderer
         return Configuration.ShouldWriteBarrelsIfClassExists || codeNamespace.FindChildByName<CodeClass>(namespaceNameLastSegment, false) == null;
     }
 
-    public static CodeRenderer GetCodeRender(GenerationConfiguration config)
+    public static CodeRenderer GetCodeRender(GenerationConfiguration config, IFileSystem fs)
     {
         ArgumentNullException.ThrowIfNull(config);
         return config.Language switch
         {
-            GenerationLanguage.TypeScript => new TypeScriptCodeRenderer(config),
-            GenerationLanguage.Python => new PythonCodeRenderer(config),
-            _ => new CodeRenderer(config),
+            GenerationLanguage.TypeScript => new TypeScriptCodeRenderer(config, fs),
+            GenerationLanguage.Python => new PythonCodeRenderer(config, fs),
+            _ => new CodeRenderer(config, fs),
         };
     }
 

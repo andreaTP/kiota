@@ -1,11 +1,12 @@
 ﻿using Kiota.Builder.PathSegmenters;
+using Zio;
 
 namespace Kiota.Builder.Writers.Java;
 public class JavaWriter : LanguageWriter
 {
-    public JavaWriter(string rootPath, string clientNamespaceName)
+    public JavaWriter(string rootPath, string clientNamespaceName, IFileSystem fs)
     {
-        PathSegmenter = new JavaPathSegmenter(rootPath, clientNamespaceName);
+        PathSegmenter = new JavaPathSegmenter(rootPath, clientNamespaceName, fs);
         var conventionService = new JavaConventionService();
         AddOrReplaceCodeElementWriter(new CodeClassDeclarationWriter(conventionService));
         AddOrReplaceCodeElementWriter(new CodeBlockEndWriter());

@@ -14,7 +14,18 @@ internal static class OpenApiDocumentExtensions
         ArgumentNullException.ThrowIfNull(openApiDocument);
         if (!inheritanceIndex.Any() && openApiDocument.Components?.Schemas != null)
         {
-            Parallel.ForEach(openApiDocument.Components.Schemas, entry =>
+            // TODO: breaks on WASI -> have a flag to disable parallel execution
+            // Parallel.ForEach(openApiDocument.Components.Schemas, entry =>
+            // {
+            //     inheritanceIndex.TryAdd(entry.Key, new(StringComparer.OrdinalIgnoreCase));
+            //     if (entry.Value.AllOf != null)
+            //         foreach (var allOfEntry in entry.Value.AllOf.Where(static x => !string.IsNullOrEmpty(x.Reference?.Id)))
+            //         {
+            //             var dependents = inheritanceIndex.GetOrAdd(allOfEntry.Reference.Id, new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase));
+            //             dependents.TryAdd(entry.Key, false);
+            //         }
+            // });
+            foreach (var entry in openApiDocument.Components.Schemas)
             {
                 inheritanceIndex.TryAdd(entry.Key, new(StringComparer.OrdinalIgnoreCase));
                 if (entry.Value.AllOf != null)
@@ -23,7 +34,7 @@ internal static class OpenApiDocumentExtensions
                         var dependents = inheritanceIndex.GetOrAdd(allOfEntry.Reference.Id, new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase));
                         dependents.TryAdd(entry.Key, false);
                     }
-            });
+            };
         }
     }
 }

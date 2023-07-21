@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -104,7 +105,8 @@ public partial class KiotaBuilder
         sw.Start();
         if (originalDocument == null)
         {
-            openApiDocument = await CreateOpenApiDocumentAsync(input, generating, cancellationToken).ConfigureAwait(false);
+            // openApiDocument = await CreateOpenApiDocumentAsync(input, generating, cancellationToken).ConfigureAwait(false);
+            openApiDocument = CreateOpenApiDocument(input, generating, cancellationToken);
             if (openApiDocument != null)
                 originalDocument = new OpenApiDocument(openApiDocument);
         }
@@ -217,6 +219,7 @@ public partial class KiotaBuilder
 
             // RefineByLanguage
             sw.Start();
+            Console.WriteLine("Going to enter the refinement phase." + true);
             await ApplyLanguageRefinement(config, generatedCode, cancellationToken).ConfigureAwait(false);
             StopLogAndReset(sw, $"step {++stepId} - refine by language - took");
 
@@ -237,13 +240,45 @@ public partial class KiotaBuilder
         }
         return true;
     }
+
+
+    // hacking to check if wasi is still viable or not ...
+    public bool GenerateClientReproduce(CancellationToken cancellationToken)
+    {
+        var sw = new Stopwatch();
+        // Read input stream
+        var inputPath = config.OpenAPIFilePath;
+
+        var value = fs.ReadAllText(inputPath);
+
+        var input = new MemoryStream(Encoding.UTF8.GetBytes(value ?? ""));
+
+        // openApiDocument = await CreateOpenApiDocumentAsync(input, true, cancellationToken).ConfigureAwait(false);
+        openApiDocument = CreateOpenApiDocument(input, true, cancellationToken);
+
+        return true;
+    }
+
     private readonly LockManagementService lockManagementService;
     private async Task UpdateLockFile(CancellationToken cancellationToken)
     {
         var configurationLock = new KiotaLock(config)
         {
-            DescriptionHash = openApiDocument?.HashCode ?? string.Empty,
+            // DescriptionHash = openApiDocument?.HashCode ?? string.Empty,
+            // TODO WASI:
+            // Unhandled Exception:
+            // System.Exception: Error:
+            // System.PlatformNotSupportedException: System.Security.Cryptography is not supported on this platform.
+            //    at System.Security.Cryptography.SHA512.Create()
+            //    at Microsoft.OpenApi.Models.OpenApiDocument.GenerateHashValue(OpenApiDocument doc)
+            //    at Microsoft.OpenApi.Models.OpenApiDocument.get_HashCode()
+            //    at Kiota.Builder.KiotaBuilder.UpdateLockFile(CancellationToken cancellationToken)
+            //    at Kiota.Builder.KiotaBuilder.GenerateClientAsync(CancellationToken cancellationToken)
+            //    at Kiota.Builder.KiotaBuilder.GenerateClientAsync(CancellationToken cancellationToken)
+            //    at KiotaClientGen.Generate()
+            DescriptionHash = string.Empty,
         };
+        // TODO: Let's skip the Lock for now ...
         await lockManagementService.WriteLockFileAsync(config.OutputPath, configurationLock, cancellationToken).ConfigureAwait(false);
     }
     private static readonly GlobComparer globComparer = new();
@@ -389,7 +424,7 @@ public partial class KiotaBuilder
     }
 
     private const char ForwardSlash = '/';
-    public async Task<OpenApiDocument?> CreateOpenApiDocumentAsync(Stream input, bool generating = false, CancellationToken cancellationToken = default)
+    public OpenApiDocument? CreateOpenApiDocument(Stream input, bool generating = false, CancellationToken cancellationToken = default)
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
@@ -438,26 +473,96 @@ public partial class KiotaBuilder
         {
             // couldn't parse the URL, it's probably a local file
         }
+
+        // WORKAROUND: avoid HttpClient instantiation
+        settings.LoadExternalRefs = false;
+        // DISABLING VALIDATION DUE TO:
+        //         Unhandled Exception:
+        // System.Exception: Error:
+        // System.AggregateException: One or more errors occurred. (An exception was thrown by a TaskScheduler.)
+        //  ---> System.Threading.Tasks.TaskSchedulerException: An exception was thrown by a TaskScheduler.
+        //  ---> System.MissingMethodException:  assembly:<unknown assembly> type:<unknown type> member:(null)
+        //    at System.Threading.ThreadPool.RequestWorkerThread()
+        //    at System.Threading.ThreadPoolWorkQueue.Enqueue(Object callback, Boolean forceGlobal)
+        //    at System.Threading.ThreadPool.UnsafeQueueUserWorkItemInternal(Object callBack, Boolean preferLocal)
+        //    at System.Threading.Tasks.ThreadPoolTaskScheduler.QueueTask(Task task)
+        //    at System.Threading.Tasks.TaskScheduler.InternalQueueTask(Task task)
+        //    at System.Threading.Tasks.Task.ScheduleAndStart(Boolean needsProtection)
+        //    --- End of inner exception stack trace ---
+        //    at System.Threading.Tasks.Task.ScheduleAndStart(Boolean needsProtection)
+        //    at System.Threading.Tasks.Task.Start(TaskScheduler scheduler)
+        //    at System.Threading.Tasks.TaskReplicator.Replica`1[[System.Collections.IEnumerator, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].CreateNewReplica()
+        //    at System.Threading.Tasks.TaskReplicator.Replica.Execute()
+        //    --- End of inner exception stack trace ---
+        //    at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
+        //    at System.Threading.Tasks.Task.Wait(Int32 millisecondsTimeout, CancellationToken cancellationToken)
+        //    at System.Threading.Tasks.Task.Wait()
+        //    at System.Threading.Tasks.TaskReplicator.Replica.Wait()
+        //    at System.Threading.Tasks.TaskReplicator.Run[IEnumerator](ReplicatableUserAction`1 action, ParallelOptions options, Boolean stopOnFirstFailure)
+        //    at System.Threading.Tasks.Parallel.PartitionerForEachWorker[KeyValuePair`2,Object](Partitioner`1 source, ParallelOptions parallelOptions, Action`1 simpleBody, Action`2 bodyWithState, Action`3 bodyWithStateAndIndex, Func`4 bodyWithStateAndLocal, Func`5 bodyWithEverything, Func`1 localInit, Action`1 localFinally)
+        // --- End of stack trace from previous location ---
+        //    at System.Threading.Tasks.Parallel.ThrowSingleCancellationExceptionOrOtherException(ICollection exceptions, CancellationToken cancelToken, Exception otherException)
+        //    at System.Threading.Tasks.Parallel.PartitionerForEachWorker[KeyValuePair`2,Object](Partitioner`1 source, ParallelOptions parallelOptions, Action`1 simpleBody, Action`2 bodyWithState, Action`3 bodyWithStateAndIndex, Func`4 bodyWithStateAndLocal, Func`5 bodyWithEverything, Func`1 localInit, Action`1 localFinally)
+        //    at System.Threading.Tasks.Parallel.ForEachWorker[KeyValuePair`2,Object](IEnumerable`1 source, ParallelOptions parallelOptions, Action`1 body, Action`2 bodyWithState, Action`3 bodyWithStateAndIndex, Func`4 bodyWithStateAndLocal, Func`5 bodyWithEverything, Func`1 localInit, Action`1 localFinally)
+        //    at System.Threading.Tasks.Parallel.ForEach[KeyValuePair`2](IEnumerable`1 source, Action`1 body)
+        //    at Kiota.Builder.Extensions.OpenApiDocumentExtensions.InitializeInheritanceIndex(OpenApiDocument openApiDocument, ConcurrentDictionary`2 inheritanceIndex)
+        //    at Kiota.Builder.Validation.MissingDiscriminator.<>c__DisplayClass0_0.<.ctor>b__0(IValidationContext context, OpenApiDocument document)
+        //    at Microsoft.OpenApi.Validations.ValidationRule`1[[Microsoft.OpenApi.Models.OpenApiDocument, Microsoft.OpenApi, Version=1.6.5.0, Culture=neutral, PublicKeyToken=3f5743946376f042]].Evaluate(IValidationContext context, Object item)
+        //    at Microsoft.OpenApi.Validations.OpenApiValidator.Validate(Object item, Type type)
+        //    at Microsoft.OpenApi.Validations.OpenApiValidator.Validate[OpenApiDocument](OpenApiDocument item)
+        //    at Microsoft.OpenApi.Validations.OpenApiValidator.Visit(OpenApiDocument item)
+        //    at Microsoft.OpenApi.Services.OpenApiWalker.Walk(OpenApiDocument doc)
+        //    at Microsoft.OpenApi.Services.OpenApiWalker.Walk(IOpenApiElement element)
+        //    at Microsoft.OpenApi.Extensions.OpenApiElementExtensions.Validate(IOpenApiElement element, ValidationRuleSet ruleSet)
+        //    at Microsoft.OpenApi.Readers.OpenApiYamlDocumentReader.Read(YamlDocument input, OpenApiDiagnostic& diagnostic)
+        //    at Microsoft.OpenApi.Readers.OpenApiTextReaderReader.Read(TextReader input, OpenApiDiagnostic& diagnostic)
+        //    at Microsoft.OpenApi.Readers.OpenApiStreamReader.Read(Stream input, OpenApiDiagnostic& diagnostic)
+        //    at Kiota.Builder.KiotaBuilder.CreateOpenApiDocument(Stream input, Boolean generating, CancellationToken cancellationToken)
+        //    at Kiota.Builder.KiotaBuilder.GenerateClientReproduce(CancellationToken cancellationToken)
+        //    at KiotaClientGen.Generate()
+        settings.RuleSet = null;
+
         var reader = new OpenApiStreamReader(settings);
-        var readResult = await reader.ReadAsync(input, cancellationToken).ConfigureAwait(false);
+        // TODO: workaround for this error:
+        //         System.Exception: Error:
+        // System.PlatformNotSupportedException: System.Net.Security is not supported on this platform.
+        //    at System.Net.Security.SslClientAuthenticationOptions..ctor()
+        //    at System.Net.Http.SocketsHttpHandler.get_SslOptions()
+        //    at System.Net.Http.HttpClientHandler.ThrowForModifiedManagedSslOptionsIfStarted()
+        //    at System.Net.Http.HttpClientHandler.set_ClientCertificateOptions(ClientCertificateOption value)
+        //    at System.Net.Http.HttpClientHandler..ctor()
+        //    at System.Net.Http.HttpClient..ctor()
+        //    at Microsoft.OpenApi.Readers.Services.DefaultStreamLoader..ctor(Uri baseUrl)
+        //    at Microsoft.OpenApi.Readers.OpenApiYamlDocumentReader.LoadExternalRefs(OpenApiDocument document, CancellationToken cancellationToken)
+        //    at Microsoft.OpenApi.Readers.OpenApiYamlDocumentReader.ReadAsync(YamlDocument input, CancellationToken cancellationToken)
+        //    at Microsoft.OpenApi.Readers.OpenApiTextReaderReader.ReadAsync(TextReader input, CancellationToken cancellationToken)
+        //    at Microsoft.OpenApi.Readers.OpenApiStreamReader.ReadAsync(Stream input, CancellationToken cancellationToken)
+        //    at Kiota.Builder.KiotaBuilder.CreateOpenApiDocumentAsync(Stream input, Boolean generating, CancellationToken cancellationToken)
+        //    at Kiota.Builder.KiotaBuilder.GenerateClientSync(CancellationToken cancellationToken)
+        //    at KiotaClientGen.Generate()
+        // due to things done in the OpenAPI core library
+        // var readResult = await reader.ReadAsync(input, cancellationToken).ConfigureAwait(false);
+        var resultDiagnostic = new OpenApiDiagnostic();
+        var resultDocument = reader.Read(input, out resultDiagnostic);
         stopwatch.Stop();
         if (generating)
-            foreach (var warning in readResult.OpenApiDiagnostic.Warnings)
+            foreach (var warning in resultDiagnostic.Warnings)
                 logger.LogWarning("OpenAPI warning: {Pointer} - {Warning}", warning.Pointer, warning.Message);
-        if (readResult.OpenApiDiagnostic.Errors.Any())
+        if (resultDiagnostic.Errors.Any())
         {
-            logger.LogTrace("{Timestamp}ms: Parsed OpenAPI with errors. {Count} paths found.", stopwatch.ElapsedMilliseconds, readResult.OpenApiDocument?.Paths?.Count ?? 0);
-            foreach (var parsingError in readResult.OpenApiDiagnostic.Errors)
+            logger.LogTrace("{Timestamp}ms: Parsed OpenAPI with errors. {Count} paths found.", stopwatch.ElapsedMilliseconds, resultDocument?.Paths?.Count ?? 0);
+            foreach (var parsingError in resultDiagnostic.Errors)
             {
                 logger.LogError("OpenAPI error: {Pointer} - {Message}", parsingError.Pointer, parsingError.Message);
             }
         }
         else
         {
-            logger.LogTrace("{Timestamp}ms: Parsed OpenAPI successfully. {Count} paths found.", stopwatch.ElapsedMilliseconds, readResult.OpenApiDocument?.Paths?.Count ?? 0);
+            logger.LogTrace("{Timestamp}ms: Parsed OpenAPI successfully. {Count} paths found.", stopwatch.ElapsedMilliseconds, resultDocument?.Paths?.Count ?? 0);
         }
 
-        return readResult.OpenApiDocument;
+        // return readResult.OpenApiDocument;
+        return resultDocument;
     }
     public static string GetDeeperMostCommonNamespaceNameForModels(OpenApiDocument document)
     {
@@ -629,10 +734,10 @@ public partial class KiotaBuilder
 
     public async Task CreateLanguageSourceFilesAsync(GenerationLanguage language, CodeNamespace generatedCode, CancellationToken cancellationToken)
     {
-        var languageWriter = LanguageWriter.GetLanguageWriter(language, config.OutputPath, config.ClientNamespaceName, config.UsesBackingStore);
+        var languageWriter = LanguageWriter.GetLanguageWriter(language, config.OutputPath, config.ClientNamespaceName, fs, config.UsesBackingStore);
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        var codeRenderer = CodeRenderer.GetCodeRender(config);
+        var codeRenderer = CodeRenderer.GetCodeRender(config, fs);
         await codeRenderer.RenderCodeNamespaceToFilePerClassAsync(languageWriter, generatedCode, cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
         logger.LogTrace("{Timestamp}ms: Files written to {Path}", stopwatch.ElapsedMilliseconds, config.OutputPath);

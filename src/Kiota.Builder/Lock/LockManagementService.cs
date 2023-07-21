@@ -76,9 +76,11 @@ public class LockManagementService : ILockManagementService
     {
         var lockFilePath = Path.Combine(directoryPath, LockFileName);
 #pragma warning disable CA2007
-        await using var fileStream = fs.OpenFile(lockFilePath, FileMode.Create, FileAccess.ReadWrite);
+        await using var fileStream = fs.OpenFile(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
 #pragma warning restore CA2007
-        await JsonSerializer.SerializeAsync(fileStream, lockInfo, context.KiotaLock, cancellationToken).ConfigureAwait(false);
+        // TODO: not working on WASI
+        // await JsonSerializer.SerializeAsync(fileStream, lockInfo, context.KiotaLock, cancellationToken).ConfigureAwait(false);
+        JsonSerializer.Serialize(fileStream, lockInfo, context.KiotaLock);
     }
     /// <inheritdoc/>
     public Task BackupLockFileAsync(string directoryPath, CancellationToken cancellationToken = default)

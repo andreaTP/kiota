@@ -14,126 +14,135 @@ public class JavaRefiner : CommonLanguageRefiner, ILanguageRefiner
     public JavaRefiner(GenerationConfiguration configuration) : base(configuration) { }
     public override Task Refine(CodeNamespace generatedCode, CancellationToken cancellationToken)
     {
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            MoveRequestBuilderPropertiesToBaseType(generatedCode,
-                new CodeUsing
-                {
-                    Name = "BaseRequestBuilder",
-                    Declaration = new CodeType
-                    {
-                        Name = AbstractionsNamespaceName,
-                        IsExternal = true
-                    }
-                });
-            RemoveRequestConfigurationClassesCommonProperties(generatedCode,
-                new CodeUsing
-                {
-                    Name = "BaseRequestConfiguration",
-                    Declaration = new CodeType
-                    {
-                        Name = AbstractionsNamespaceName,
-                        IsExternal = true
-                    }
-                });
-            var reservedNamesProvider = new JavaReservedNamesProvider();
-            CorrectNames(generatedCode, s =>
+        Console.WriteLine("Java refiner going to start: " + 1);
+        // WASI: removing Task.Run -> seems to fail
+        // return Task.Run(() =>
+        // {
+        Console.WriteLine("Java refiner started: " + 1);
+        cancellationToken.ThrowIfCancellationRequested();
+        MoveRequestBuilderPropertiesToBaseType(generatedCode,
+            new CodeUsing
             {
-                if (s.Contains('_', StringComparison.OrdinalIgnoreCase) &&
-                     s.ToPascalCase(UnderscoreArray) is string refinedName &&
-                    !reservedNamesProvider.ReservedNames.Contains(s) &&
-                    !reservedNamesProvider.ReservedNames.Contains(refinedName))
-                    return refinedName;
-                else
-                    return s;
+                Name = "BaseRequestBuilder",
+                Declaration = new CodeType
+                {
+                    Name = AbstractionsNamespaceName,
+                    IsExternal = true
+                }
             });
-            RemoveClassNamePrefixFromNestedClasses(generatedCode);
-            InsertOverrideMethodForRequestExecutorsAndBuildersAndConstructors(generatedCode);
-            ReplaceIndexersByMethodsWithParameter(generatedCode,
-                true,
-                static x => $"By{x.ToFirstCharacterUpperCase()}",
-                static x => x.ToFirstCharacterLowerCase());
-            cancellationToken.ThrowIfCancellationRequested();
-            RemoveCancellationParameter(generatedCode);
-            ConvertUnionTypesToWrapper(generatedCode,
-                _configuration.UsesBackingStore,
-                true,
-                SerializationNamespaceName,
-                "ComposedTypeWrapper"
-            );
-            AddRawUrlConstructorOverload(generatedCode);
-            CorrectCoreType(generatedCode, CorrectMethodType, CorrectPropertyType, CorrectImplements);
-            cancellationToken.ThrowIfCancellationRequested();
-            ReplaceBinaryByNativeType(generatedCode, "InputStream", "java.io", true, true);
-            ReplacePropertyNames(generatedCode,
-                new() {
+        RemoveRequestConfigurationClassesCommonProperties(generatedCode,
+            new CodeUsing
+            {
+                Name = "BaseRequestConfiguration",
+                Declaration = new CodeType
+                {
+                    Name = AbstractionsNamespaceName,
+                    IsExternal = true
+                }
+            });
+        var reservedNamesProvider = new JavaReservedNamesProvider();
+        CorrectNames(generatedCode, s =>
+        {
+            if (s.Contains('_', StringComparison.OrdinalIgnoreCase) &&
+                 s.ToPascalCase(UnderscoreArray) is string refinedName &&
+                !reservedNamesProvider.ReservedNames.Contains(s) &&
+                !reservedNamesProvider.ReservedNames.Contains(refinedName))
+                return refinedName;
+            else
+                return s;
+        });
+        Console.WriteLine("Java refiner: " + 2);
+        RemoveClassNamePrefixFromNestedClasses(generatedCode);
+        InsertOverrideMethodForRequestExecutorsAndBuildersAndConstructors(generatedCode);
+        ReplaceIndexersByMethodsWithParameter(generatedCode,
+            true,
+            static x => $"By{x.ToFirstCharacterUpperCase()}",
+            static x => x.ToFirstCharacterLowerCase());
+        cancellationToken.ThrowIfCancellationRequested();
+        RemoveCancellationParameter(generatedCode);
+        ConvertUnionTypesToWrapper(generatedCode,
+            _configuration.UsesBackingStore,
+            true,
+            SerializationNamespaceName,
+            "ComposedTypeWrapper"
+        );
+        Console.WriteLine("Java refiner: " + 3);
+        AddRawUrlConstructorOverload(generatedCode);
+        CorrectCoreType(generatedCode, CorrectMethodType, CorrectPropertyType, CorrectImplements);
+        cancellationToken.ThrowIfCancellationRequested();
+        ReplaceBinaryByNativeType(generatedCode, "InputStream", "java.io", true, true);
+        ReplacePropertyNames(generatedCode,
+            new() {
                     CodePropertyKind.Custom,
-                },
-                static s => s.ToCamelCase(UnderscoreArray));
-            AddGetterAndSetterMethods(generatedCode,
-                new() {
+            },
+            static s => s.ToCamelCase(UnderscoreArray));
+        AddGetterAndSetterMethods(generatedCode,
+            new() {
                     CodePropertyKind.Custom,
                     CodePropertyKind.AdditionalData,
                     CodePropertyKind.BackingStore,
-                },
-                static (_, s) => s.ToCamelCase(UnderscoreArray),
-                _configuration.UsesBackingStore,
-                true,
-                "get",
-                "set",
-                string.Empty
-            );
-            ReplaceReservedNames(generatedCode, reservedNamesProvider, x => $"{x}Escaped", new HashSet<Type> { typeof(CodeEnumOption) });
-            ReplaceReservedExceptionPropertyNames(generatedCode, new JavaExceptionsReservedNamesProvider(), x => $"{x}Escaped");
-            LowerCaseNamespaceNames(generatedCode);
-            AddPropertiesAndMethodTypesImports(generatedCode, true, false, true);
-            cancellationToken.ThrowIfCancellationRequested();
-            AddDefaultImports(generatedCode, defaultUsingEvaluators);
-            AddParsableImplementsForModelClasses(generatedCode, "Parsable");
-            AddEnumSetImport(generatedCode);
-            cancellationToken.ThrowIfCancellationRequested();
-            SetSetterParametersToNullable(generatedCode, new Tuple<CodeMethodKind, CodePropertyKind>(CodeMethodKind.Setter, CodePropertyKind.AdditionalData));
-            AddConstructorsForDefaultValues(generatedCode, true);
-            CorrectCoreTypesForBackingStore(generatedCode, "BackingStoreFactorySingleton.instance.createBackingStore()");
-            var defaultConfiguration = new GenerationConfiguration();
-            cancellationToken.ThrowIfCancellationRequested();
-            ReplaceDefaultSerializationModules(
-                generatedCode,
-                defaultConfiguration.Serializers,
-                new(StringComparer.OrdinalIgnoreCase) {
+            },
+            static (_, s) => s.ToCamelCase(UnderscoreArray),
+            _configuration.UsesBackingStore,
+            true,
+            "get",
+            "set",
+            string.Empty
+        );
+        Console.WriteLine("Java refiner: " + 4);
+        ReplaceReservedNames(generatedCode, reservedNamesProvider, x => $"{x}Escaped", new HashSet<Type> { typeof(CodeEnumOption) });
+        ReplaceReservedExceptionPropertyNames(generatedCode, new JavaExceptionsReservedNamesProvider(), x => $"{x}Escaped");
+        LowerCaseNamespaceNames(generatedCode);
+        AddPropertiesAndMethodTypesImports(generatedCode, true, false, true);
+        cancellationToken.ThrowIfCancellationRequested();
+        AddDefaultImports(generatedCode, defaultUsingEvaluators);
+        AddParsableImplementsForModelClasses(generatedCode, "Parsable");
+        AddEnumSetImport(generatedCode);
+        cancellationToken.ThrowIfCancellationRequested();
+        SetSetterParametersToNullable(generatedCode, new Tuple<CodeMethodKind, CodePropertyKind>(CodeMethodKind.Setter, CodePropertyKind.AdditionalData));
+        AddConstructorsForDefaultValues(generatedCode, true);
+        CorrectCoreTypesForBackingStore(generatedCode, "BackingStoreFactorySingleton.instance.createBackingStore()");
+        Console.WriteLine("Java refiner: " + 5);
+        var defaultConfiguration = new GenerationConfiguration();
+        cancellationToken.ThrowIfCancellationRequested();
+        ReplaceDefaultSerializationModules(
+            generatedCode,
+            defaultConfiguration.Serializers,
+            new(StringComparer.OrdinalIgnoreCase) {
                     $"{SerializationNamespaceName}.JsonSerializationWriterFactory",
                     $"{SerializationNamespaceName}.TextSerializationWriterFactory",
                     $"{SerializationNamespaceName}.FormSerializationWriterFactory",
-                }
-            );
-            ReplaceDefaultDeserializationModules(
-                generatedCode,
-                defaultConfiguration.Deserializers,
-                new(StringComparer.OrdinalIgnoreCase) {
+            }
+        );
+        ReplaceDefaultDeserializationModules(
+            generatedCode,
+            defaultConfiguration.Deserializers,
+            new(StringComparer.OrdinalIgnoreCase) {
                     $"{SerializationNamespaceName}.JsonParseNodeFactory",
                     $"{SerializationNamespaceName}.FormParseNodeFactory",
                     $"{SerializationNamespaceName}.TextParseNodeFactory"
-                }
-            );
-            AddSerializationModulesImport(generatedCode,
-                                        new[] { $"{AbstractionsNamespaceName}.ApiClientBuilder",
+            }
+        );
+        AddSerializationModulesImport(generatedCode,
+                                    new[] { $"{AbstractionsNamespaceName}.ApiClientBuilder",
                                                 $"{SerializationNamespaceName}.SerializationWriterFactoryRegistry" },
-                                        new[] { $"{SerializationNamespaceName}.ParseNodeFactoryRegistry" });
-            cancellationToken.ThrowIfCancellationRequested();
-            AddParentClassToErrorClasses(
-                    generatedCode,
-                    "ApiException",
-                    AbstractionsNamespaceName
-            );
-            AddDiscriminatorMappingsUsingsToParentClasses(
+                                    new[] { $"{SerializationNamespaceName}.ParseNodeFactoryRegistry" });
+        cancellationToken.ThrowIfCancellationRequested();
+        AddParentClassToErrorClasses(
                 generatedCode,
-                "ParseNode",
-                addUsings: true
-            );
-            RemoveHandlerFromRequestBuilder(generatedCode);
-            SplitLongDiscriminatorMethods(generatedCode);
-        }, cancellationToken);
+                "ApiException",
+                AbstractionsNamespaceName
+        );
+        AddDiscriminatorMappingsUsingsToParentClasses(
+            generatedCode,
+            "ParseNode",
+            addUsings: true
+        );
+        Console.WriteLine("Java refiner: " + 6);
+        RemoveHandlerFromRequestBuilder(generatedCode);
+        SplitLongDiscriminatorMethods(generatedCode);
+        // }, cancellationToken);
+        return Task.CompletedTask;
     }
     private const int MaxDiscriminatorLength = 500;
     private static void SplitLongDiscriminatorMethods(CodeElement currentElement)

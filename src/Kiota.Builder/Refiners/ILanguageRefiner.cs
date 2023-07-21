@@ -20,6 +20,7 @@ public interface ILanguageRefiner
                 await new TypeScriptRefiner(config).Refine(generatedCode, cancellationToken).ConfigureAwait(false);
                 break;
             case GenerationLanguage.Java:
+                Console.WriteLine("GO JAVA GO! " + true);
                 await new JavaRefiner(config).Refine(generatedCode, cancellationToken).ConfigureAwait(false);
                 break;
             case GenerationLanguage.Ruby:

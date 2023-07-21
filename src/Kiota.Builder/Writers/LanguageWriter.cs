@@ -16,6 +16,8 @@ using Kiota.Builder.Writers.Shell;
 using Kiota.Builder.Writers.Swift;
 using Kiota.Builder.Writers.TypeScript;
 
+using Zio;
+
 namespace Kiota.Builder.Writers;
 
 public abstract class LanguageWriter
@@ -170,12 +172,12 @@ public abstract class LanguageWriter
             Writers[typeof(T)] = writer;
     }
     private readonly Dictionary<Type, object> Writers = new(); // we have to type as object because dotnet doesn't have type capture i.e eq for `? extends CodeElement`
-    public static LanguageWriter GetLanguageWriter(GenerationLanguage language, string outputPath, string clientNamespaceName, bool usesBackingStore = false)
+    public static LanguageWriter GetLanguageWriter(GenerationLanguage language, string outputPath, string clientNamespaceName, IFileSystem fs, bool usesBackingStore = false)
     {
         return language switch
         {
             GenerationLanguage.CSharp => new CSharpWriter(outputPath, clientNamespaceName),
-            GenerationLanguage.Java => new JavaWriter(outputPath, clientNamespaceName),
+            GenerationLanguage.Java => new JavaWriter(outputPath, clientNamespaceName, fs!),
             GenerationLanguage.TypeScript => new TypeScriptWriter(outputPath, clientNamespaceName, usesBackingStore),
             GenerationLanguage.Ruby => new RubyWriter(outputPath, clientNamespaceName),
             GenerationLanguage.PHP => new PhpWriter(outputPath, clientNamespaceName, usesBackingStore),

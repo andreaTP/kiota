@@ -2,16 +2,21 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Zio;
 
 using Kiota.Builder.CodeDOM;
 
 namespace Kiota.Builder.PathSegmenters;
 public abstract class CommonPathSegmenter : IPathSegmenter
 {
-    protected CommonPathSegmenter(string rootPath, string clientNamespaceName)
+    private readonly IFileSystem fs;
+    protected CommonPathSegmenter(string rootPath, string clientNamespaceName, IFileSystem? fs = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(rootPath);
         ArgumentException.ThrowIfNullOrEmpty(clientNamespaceName);
+        // Nullable just to avoid the major refactoring now, just hacking
+        // ArgumentException.ThrowIfNullOrEmpty(fs);
+        this.fs = fs!;
         ClientNamespaceName = clientNamespaceName;
         RootPath = rootPath.Contains(Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ? rootPath : rootPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
     }
@@ -51,7 +56,7 @@ public abstract class CommonPathSegmenter : IPathSegmenter
             targetPath = NormalizePath(targetPath);
         var directoryPath = Path.GetDirectoryName(targetPath);
         if (!string.IsNullOrEmpty(directoryPath))
-            Directory.CreateDirectory(directoryPath);
+            fs.CreateDirectory(directoryPath);
         return targetPath;
     }
 }

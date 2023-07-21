@@ -26,7 +26,6 @@ public partial class KiotaClientGen
     {
         // Display the number of command line arguments.
         Console.WriteLine(args.Length);
-        Console.WriteLine("Avanti!");
 
         // File.Create("example-from-wasi.txt");
     }
@@ -181,22 +180,56 @@ components:
             Console.WriteLine("6");
 
             var builder = new KiotaBuilder(consoleLogger, generationConfiguration, null, memoryFs);
+            // Used to debug and workaround the limitations for running OpenAPI on WASI
+            // var result = builder.GenerateClientReproduce(token);
             var result = await builder.GenerateClientAsync(token).ConfigureAwait(false);
 
             Console.WriteLine("7");
 
-            var zipFilePath = Path.Combine(Path.GetTempPath(), "kiota", "clients", "client.zip");
+            // var zipFilePath = Path.Combine(Path.GetTempPath(), "kiota", "clients", "client.zip");
 
-            if (zipFs.FileExists(zipFilePath))
-                zipFs.DeleteFile(zipFilePath);
-            else
-                zipFs.CreateDirectory(Path.GetDirectoryName(zipFilePath)!);
+            // if (zipFs.FileExists(zipFilePath))
+            //     zipFs.DeleteFile(zipFilePath);
+            // else
+            //     zipFs.CreateDirectory(Path.GetDirectoryName(zipFilePath)!);
+
+            // Need to export a zip file archive ...
+            byte[] compressedBytes;
+            using (var outStream = new MemoryStream())
+            {
+                using (var archive = new ZipArchive(outStream, ZipArchiveMode.Create, true))
+                {
+                    foreach (var path in memoryFs.EnumeratePaths(OutputPath, "*.*", SearchOption.AllDirectories))
+                    {
+                        if (memoryFs.FileExists(path))
+                        {
+                            byte[] fileBytes = memoryFs.ReadAllBytes(path);
+                            Console.WriteLine("Adding file to Zip " + path);
+                            var fileInArchive = archive.CreateEntry(path.ToString().Replace("/tmp/kiota/generation/", ""), CompressionLevel.Optimal);
+                            using (var entryStream = fileInArchive.Open())
+                            using (var fileToCompressStream = new MemoryStream(fileBytes))
+                            {
+                                fileToCompressStream.CopyTo(entryStream);
+                            }
+                        }
+                    }
+                }
+                compressedBytes = outStream.ToArray();
+            }
 
             Console.WriteLine("8");
 
-            ZipFile.CreateFromDirectory(OutputPath, zipFilePath); // This is not going to work ... right?
+            using (Stream errStream = Console.OpenStandardError())
+            {
+                errStream.Write(compressedBytes, 0, compressedBytes.Length);
+            }
 
-            Console.WriteLine(zipFs.ReadAllText(zipFilePath));
+            // This is not going to work, need an alternative way
+            // ZipFile.CreateFromDirectory(OutputPath, zipFilePath); // This is not going to work ... right?
+
+            // Console.WriteLine(zipFs.ReadAllText(zipFilePath));
+
+            Console.WriteLine("END"); // finisce
         }
         catch (Exception e)
         {
