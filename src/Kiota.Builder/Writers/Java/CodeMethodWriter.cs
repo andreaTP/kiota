@@ -548,21 +548,21 @@ public class CodeMethodWriter : BaseElementWriter<CodeMethod, JavaConventionServ
 
         if (requestParams.requestConfiguration != null)
         {
-            writer.WriteLine($"if ({requestParams.requestConfiguration.Name} != null) {{");
-            writer.IncreaseIndent();
             var requestConfigTypeName = requestParams.requestConfiguration.Type.Name;
-            writer.WriteLines($"final {requestConfigTypeName} {RequestConfigVarName} = new {requestConfigTypeName}();",
-                        $"{requestParams.requestConfiguration.Name}.accept({RequestConfigVarName});");
+            writer.WriteLine($"final RequestInformation {RequestInfoVarName} = new RequestInformation(new {requestConfigTypeName}());");
+
+            writer.WriteLine($"{requestParams.requestConfiguration.Name}.accept({RequestInfoVarName}.getRequestConfiguration());");
             var queryString = requestParams.QueryParameters;
             if (queryString != null)
             {
-                var queryStringName = $"{RequestConfigVarName}.{queryString.Name}";
-                writer.WriteLine($"{RequestInfoVarName}.addQueryParameters({queryStringName});");
+                writer.WriteLine($"{requestParams.requestConfiguration.Name}.configure(rc -> rc.{queryString.Name});");
             }
-            writer.WriteLines($"{RequestInfoVarName}.headers.putAll({RequestConfigVarName}.headers);",
-                             $"{RequestInfoVarName}.addRequestOptions({RequestConfigVarName}.options);");
 
             writer.CloseBlock();
+        }
+        else
+        {
+            writer.WriteLine($"final RequestInformation {RequestInfoVarName} = new RequestInformation();");
         }
 
         writer.WriteLine($"{RequestInfoVarName}.httpMethod = HttpMethod.{codeElement.HttpMethod.ToString()?.ToUpperInvariant()};");
