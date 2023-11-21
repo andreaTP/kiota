@@ -17,12 +17,13 @@ public class CodeEnumWriter : BaseElementWriter<CodeEnum, JavaConventionService>
         writer.WriteLines($"package {(codeElement.Parent as CodeNamespace)?.Name};",
             string.Empty,
             "import com.microsoft.kiota.serialization.ValuedEnum;",
+            "import com.microsoft.kiota.serialization.ValuedEnumParser;",
             "import java.util.Objects;",
             string.Empty);
         conventions.WriteLongDescription(codeElement, writer);
         conventions.WriteDeprecatedAnnotation(codeElement, writer);
         writer.WriteLine($"{JavaConventionService.AutoGenerationHeader}");
-        writer.WriteLine($"public enum {enumName} implements ValuedEnum {{");
+        writer.WriteLine($"public enum {enumName} implements ValuedEnum, ValuedEnumParser<{enumName}> {{");
         writer.IncreaseIndent();
         var lastEnumOption = enumOptions.Last();
         foreach (var enumOption in enumOptions)
@@ -39,7 +40,7 @@ public class CodeEnumWriter : BaseElementWriter<CodeEnum, JavaConventionService>
                     "@jakarta.annotation.Nonnull",
                     "public String getValue() { return this.value; }",
                     "@jakarta.annotation.Nullable",
-                    $"public static {enumName} forValue(@jakarta.annotation.Nonnull final String searchValue) {{");
+                    $"public {enumName} forValue(@jakarta.annotation.Nonnull final String searchValue) {{");
         writer.IncreaseIndent();
         writer.WriteLines("Objects.requireNonNull(searchValue);",
                         "switch(searchValue) {");
