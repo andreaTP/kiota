@@ -17,7 +17,6 @@ public class CodeEnumWriter : BaseElementWriter<CodeEnum, JavaConventionService>
         writer.WriteLines($"package {(codeElement.Parent as CodeNamespace)?.Name};",
             string.Empty,
             "import com.microsoft.kiota.serialization.ValuedEnum;",
-            "import com.microsoft.kiota.serialization.ValuedEnumParser;",
             "import java.util.Objects;",
             string.Empty);
         conventions.WriteLongDescription(codeElement, writer);
