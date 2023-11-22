@@ -506,7 +506,7 @@ public class CodeMethodWriter : BaseElementWriter<CodeMethod, JavaConventionServ
             if (returnCodeType.TypeDefinition is CodeClass)
                 factoryParameter = $"{returnType}::{FactoryMethodName}";
             else if (returnCodeType.TypeDefinition is CodeEnum)
-                factoryParameter = $"value -> (value == null || {returnType}.values().length < 1) ? null : {returnType}.values()[0].forValue(value)";
+                factoryParameter = $"{returnType}::forValue";
             else
                 factoryParameter = $"{returnType}.class";
         }
@@ -747,7 +747,7 @@ public class CodeMethodWriter : BaseElementWriter<CodeMethod, JavaConventionServ
             if (currentType.TypeDefinition is CodeEnum currentEnum)
             {
                 var returnType = propertyType.ToFirstCharacterUpperCase();
-                return $"getEnum{(currentEnum.Flags ? "Set" : string.Empty)}Value(value -> (value == null || {returnType}.values().length < 1) ? null : {returnType}.values()[0].forValue(value))";
+                return $"getEnum{(currentEnum.Flags ? "Set" : string.Empty)}Value({returnType}::forValue)";
             }
 
         }

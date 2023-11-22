@@ -23,7 +23,7 @@ public class CodeEnumWriter : BaseElementWriter<CodeEnum, JavaConventionService>
         conventions.WriteLongDescription(codeElement, writer);
         conventions.WriteDeprecatedAnnotation(codeElement, writer);
         writer.WriteLine($"{JavaConventionService.AutoGenerationHeader}");
-        writer.WriteLine($"public enum {enumName} implements ValuedEnum, ValuedEnumParser<{enumName}> {{");
+        writer.WriteLine($"public enum {enumName} implements ValuedEnum {{");
         writer.IncreaseIndent();
         var lastEnumOption = enumOptions.Last();
         foreach (var enumOption in enumOptions)
@@ -40,7 +40,7 @@ public class CodeEnumWriter : BaseElementWriter<CodeEnum, JavaConventionService>
                     "@jakarta.annotation.Nonnull",
                     "public String getValue() { return this.value; }",
                     "@jakarta.annotation.Nullable",
-                    $"public {enumName} forValue(@jakarta.annotation.Nonnull final String searchValue) {{");
+                    $"public static {enumName} forValue(@jakarta.annotation.Nonnull final String searchValue) {{");
         writer.IncreaseIndent();
         writer.WriteLines("Objects.requireNonNull(searchValue);",
                         "switch(searchValue) {");
