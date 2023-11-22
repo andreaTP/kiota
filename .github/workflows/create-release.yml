@@ -53,21 +53,3 @@ jobs:
         with:
           args: |
             output/binaries-*/*.zip
-  publish_kiota_dev:
-    name: Publish kiota.dev
-    environment:
-      name: kiota.dev
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 8.x
-      - name: Restore workloads
-        run: |
-          dotnet workload restore
-          dotnet workload install wasm-tools
-      - name: Publish kiota.dev
-        run: dotnet publish -c Release
-        working-directory: ./src/Kiota.Web
