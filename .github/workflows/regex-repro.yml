@@ -45,9 +45,8 @@ jobs:
           dotnet build ./src/kiota
       - name: Run the CLI
         run: |
-          nohup sh -c "for i in 1 2; do while : ; do : ; done & done
-          " > /dev/null 2> /dev/null &
-          for ((n=0;n<10;n++))
+          nohup sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do while : ; do : ; done & done" > /dev/null 2> /dev/null &
+          for ((n=0;n<100;n++))
           do
             src/kiota/bin/Debug/net8.0/kiota generate --openapi="https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.yaml" --output=tmp --clean-output --clear-cache --language java
             src/kiota/bin/Debug/net8.0/kiota generate --openapi="https://api.apis.guru/v2/specs/twitter.com/current/2.61/openapi.json" --output=tmp --clean-output --clear-cache --language java
