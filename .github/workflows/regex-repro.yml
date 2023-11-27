@@ -45,7 +45,7 @@ jobs:
           dotnet build ./src/kiota
       - name: Run the CLI
         run: |
-          nohup openssl speed -multi $(nproc --all) > /dev/null 2> /dev/null &
+          nohup for i in 1 2; do while : ; do : ; done & done > /dev/null 2> /dev/null &
           src/kiota/bin/Debug/net8.0/kiota generate --openapi="https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.yaml" --output=tmp --clean-output --clear-cache --language java
           src/kiota/bin/Debug/net8.0/kiota generate --openapi="https://api.apis.guru/v2/specs/twitter.com/current/2.61/openapi.json" --output=tmp --clean-output --clear-cache --language java
           src/kiota/bin/Debug/net8.0/kiota generate --openapi="https://api.apis.guru/v2/specs/notion.com/1.0.0/openapi.json" --output=tmp --clean-output --clear-cache --language java
