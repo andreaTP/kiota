@@ -1,0 +1,32 @@
+{
+  "descriptionHash": "D3CBAEDBFB5ADE5AC927F860AC33020CA0F194F3162E0A5410D45FC755F8C824963BF435838B8D20C6FBB8A2E6B3DE748AF6D7113830931FD3119F3B2DF0CAC3",
+  "descriptionLocation": "../../../openapi.yaml",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.13.0",
+  "clientClassName": "ApiClient",
+  "clientNamespaceName": "integration_test.client",
+  "language": "Python",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}
