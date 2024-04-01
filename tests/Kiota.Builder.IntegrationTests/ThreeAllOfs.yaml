@@ -1,373 +1,48 @@
 openapi: 3.0.3
 info:
-  title: Model Registry REST API
-  version: v1alpha3
-  description: REST API for Model Registry to create and manage ML model metadata
-  license:
-    name: Apache 2.0
-    url: "https://www.apache.org/licenses/LICENSE-2.0"
-servers:
-  - url: "https://localhost:8080"
+  title: A bug reproducer
+  version: v1
 paths:
-  /api/model_registry/v1alpha3/model_artifacts:
-    summary: Path used to manage the list of modelartifacts.
-    description: ""
-    get:
-      responses:
-        "200":
-          $ref: "#/components/responses/ModelArtifactListResponse"
-      operationId: getModelArtifacts
-      summary: List All ModelArtifacts
-      description: Gets a list of all `ModelArtifact` entities.
-  "/api/model_registry/v1alpha3/model_artifacts/{modelartifactId}":
-    summary: Path used to manage a single ModelArtifact.
-    description: ""
+  "/one":
     patch:
       requestBody:
-        description: Updated `ModelArtifact` information.
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ModelArtifactUpdate"
-        required: true
+              $ref: "#/components/schemas/ComponentTwo"
       responses:
         "200":
-          $ref: "#/components/responses/ModelArtifactResponse"
-      description: Updates an existing `ModelArtifact`.
-    parameters:
-      - name: modelartifactId
-        description: A unique identifier for a `ModelArtifact`.
-        schema:
-          type: string
-        in: path
-        required: true
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComponentOne"
 components:
   schemas:
-    ArtifactState:
-      description: |2-
-         - PENDING: A state indicating that the artifact may exist.
-         - LIVE: A state indicating that the artifact should exist, unless something
-        external to the system deletes it.
-         - MARKED_FOR_DELETION: A state indicating that the artifact should be deleted.
-         - DELETED: A state indicating that the artifact has been deleted.
-         - ABANDONED: A state indicating that the artifact has been abandoned, which may be
-        due to a failed or cancelled execution.
-         - REFERENCE: A state indicating that the artifact is a reference artifact. At
-        execution start time, the orchestrator produces an output artifact for
-        each output key with state PENDING. However, for an intermediate
-        artifact, this first artifact's state will be REFERENCE. Intermediate
-        artifacts emitted during a component's execution will copy the REFERENCE
-        artifact's attributes. At the end of an execution, the artifact state
-        should remain REFERENCE instead of being changed to LIVE.
-
-        See also: ml-metadata Artifact.State
-      default: UNKNOWN
-      enum:
-        - UNKNOWN
-        - PENDING
-        - LIVE
-        - MARKED_FOR_DELETION
-        - DELETED
-        - ABANDONED
-        - REFERENCE
-      type: string
-    ModelArtifact:
-      description: An ML model artifact.
-      type: object
-      required:
-        - artifactType
-      properties:
-        artifactType:
-          type: string
-          default: "model-artifact"
-      allOf:
-        - $ref: "#/components/schemas/WithBaseArtifactUpdate"
-        - $ref: "#/components/schemas/WithBaseResource"
-        - $ref: "#/components/schemas/WithBaseResourceCreate"
-        - $ref: "#/components/schemas/WithBaseResourceUpdate"
-        - $ref: "#/components/schemas/WithModelArtifactUpdate"
-    DocArtifact:
-      description: A document.
-      type: object
-      required:
-        - artifactType
-      properties:
-        artifactType:
-          type: string
-          default: "doc-artifact"
-      allOf:
-        - $ref: "#/components/schemas/WithBaseArtifactUpdate"
-        - $ref: "#/components/schemas/WithBaseResource"
-        - $ref: "#/components/schemas/WithBaseResourceCreate"
-        - $ref: "#/components/schemas/WithBaseResourceUpdate"
-    ModelArtifactList:
-      description: List of ModelArtifact entities.
+    WithOne:
       type: object
       properties:
-        items:
-          description: Array of `ModelArtifact` entities.
-          type: array
-          items:
-            $ref: "#/components/schemas/ModelArtifact"
-      allOf:
-        - $ref: "#/components/schemas/BaseResourceList"
-    WithBaseArtifactUpdate:
+        one:
+          type: string
+    WithTwo:
       type: object
       properties:
-        uri:
-          description: |-
-            The uniform resource identifier of the physical artifact.
-            May be empty if there is no physical artifact.
+        two:
           type: string
-        state:
-          $ref: "#/components/schemas/ArtifactState"
-    MetadataValue:
-      oneOf:
-        - $ref: "#/components/schemas/MetadataIntValue"
-        - $ref: "#/components/schemas/MetadataDoubleValue"
-        - $ref: "#/components/schemas/MetadataStringValue"
-        - $ref: "#/components/schemas/MetadataStructValue"
-        - $ref: "#/components/schemas/MetadataProtoValue"
-        - $ref: "#/components/schemas/MetadataBoolValue"
-      discriminator:
-        propertyName: metadataType
-        mapping:
-          MetadataBoolValue: "#/components/schemas/MetadataBoolValue"
-          MetadataDoubleValue: "#/components/schemas/MetadataDoubleValue"
-          MetadataIntValue: "#/components/schemas/MetadataIntValue"
-          MetadataProtoValue: "#/components/schemas/MetadataProtoValue"
-          MetadataStringValue: "#/components/schemas/MetadataStringValue"
-          MetadataStructValue: "#/components/schemas/MetadataStructValue"
-      description: A value in properties.
-    MetadataIntValue:
-      description: An integer (int64) property value.
-      type: object
-      required:
-        - metadataType
-        - int_value
-      properties:
-        int_value:
-          format: int64
-          type: string
-        metadataType:
-          type: string
-          example: MetadataIntValue
-          default: MetadataIntValue
-    MetadataDoubleValue:
-      description: A double property value.
-      type: object
-      required:
-        - metadataType
-        - double_value
-      properties:
-        double_value:
-          format: double
-          type: number
-        metadataType:
-          type: string
-          example: MetadataDoubleValue
-          default: MetadataDoubleValue
-    MetadataStringValue:
-      description: A string property value.
-      type: object
-      required:
-        - metadataType
-        - string_value
-      properties:
-        string_value:
-          type: string
-        metadataType:
-          type: string
-          example: MetadataStringValue
-          default: MetadataStringValue
-    MetadataStructValue:
-      description: A struct property value.
-      type: object
-      required:
-        - metadataType
-        - struct_value
-      properties:
-        struct_value:
-          description: Base64 encoded bytes for struct value
-          type: string
-        metadataType:
-          type: string
-          example: MetadataStructValue
-          default: MetadataStructValue
-    MetadataProtoValue:
-      description: A proto property value.
-      type: object
-      required:
-        - metadataType
-        - type
-        - proto_value
-      properties:
-        type:
-          description: url describing proto value
-          type: string
-        proto_value:
-          description: Base64 encoded bytes for proto value
-          type: string
-        metadataType:
-          type: string
-          example: MetadataProtoValue
-          default: MetadataProtoValue
-    MetadataBoolValue:
-      description: A bool property value.
-      type: object
-      required:
-        - metadataType
-        - bool_value
-      properties:
-        bool_value:
-          type: boolean
-        metadataType:
-          type: string
-          example: MetadataBoolValue
-          default: MetadataBoolValue
-    WithBaseResource:
+    WithThree:
       type: object
       properties:
-        id:
-          format: int64
-          description: Output only. The unique server generated id of the resource.
+        three:
           type: string
-          readOnly: true
-        createTimeSinceEpoch:
-          format: int64
-          description: Output only. Create time of the resource in millisecond since epoch.
-          type: string
-          readOnly: true
-        lastUpdateTimeSinceEpoch:
-          format: int64
-          description: |-
-            Output only. Last update time of the resource since epoch in millisecond
-            since epoch.
-          type: string
-          readOnly: true
-    WithBaseResourceCreate:
-      type: object
-      properties:
-        name:
-          description: |-
-            The client provided name of the artifact. This field is optional. If set,
-            it must be unique among all the artifacts of the same artifact type within
-            a database instance and cannot be changed once set.
-          type: string
-    WithBaseResourceUpdate:
-      type: object
-      properties:
-        customProperties:
-          description: User provided custom properties which are not defined by its type.
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/MetadataValue"
-        description:
-          description: |-
-            An optional description about the resource.
-          type: string
-        externalId:
-          description: |-
-            The external id that come from the clients’ system. This field is optional.
-            If set, it must be unique among all resources within a database instance.
-          type: string
-    BaseResourceList:
-      required:
-        - nextPageToken
-        - pageSize
-        - size
-      type: object
-      properties:
-        nextPageToken:
-          description: Token to use to retrieve next page of results.
-          type: string
-        pageSize:
-          format: int32
-          description: Maximum number of resources to return in the result.
-          type: integer
-        size:
-          format: int32
-          description: Number of items in result list.
-          type: integer
-    ArtifactList:
-      description: A list of Artifact entities.
-      type: object
-      properties:
-        items:
-          description: Array of `Artifact` entities.
-          type: array
-          items:
-            $ref: "#/components/schemas/Artifact"
-      allOf:
-        - $ref: "#/components/schemas/BaseResourceList"
-    WithModelArtifactUpdate:
-      description: An ML model artifact.
-      type: object
-      properties:
-        modelFormatName:
-          description: Name of the model format.
-          type: string
-        storageKey:
-          description: Storage secret name.
-          type: string
-        storagePath:
-          description: Path for model in storage provided by `storageKey`.
-          type: string
-        modelFormatVersion:
-          description: Version of the model format.
-          type: string
-        serviceAccountName:
-          description: Name of the service account with storage secret.
-          type: string
-    ModelArtifactUpdate:
-      description: An ML model artifact.
+    ComponentOne:
       type: object
       allOf:
-        - $ref: "#/components/schemas/WithBaseResourceUpdate"
-        - $ref: "#/components/schemas/WithModelArtifactUpdate"
-        # TODO: WORKAROUND: WithBaseArtifactUpdate got picked up as direct parent - inlining it for now
-        - $ref: "#/components/schemas/WithBaseArtifactUpdate"
-        # - type: object
-        #   properties:
-        #     uri:
-        #       description: |-
-        #         The uniform resource identifier of the physical artifact.
-        #         May be empty if there is no physical artifact.
-        #       type: string
-        #     state:
-        #       $ref: "#/components/schemas/ArtifactState"
-    Artifact:
-      oneOf:
-        - $ref: "#/components/schemas/ModelArtifact"
-        - $ref: "#/components/schemas/DocArtifact"
-      discriminator:
-        propertyName: artifactType
-        mapping:
-          model-artifact: "#/components/schemas/ModelArtifact"
-          doc-artifact: "#/components/schemas/DocArtifact"
-      description: A metadata Artifact Entity.
-  responses:
-    ModelArtifactListResponse:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ModelArtifactList"
-      description: A response containing a list of ModelArtifact entities.
-    ModelArtifactResponse:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ModelArtifact"
-      description: A response containing a `ModelArtifact` entity.
-    ArtifactResponse:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Artifact"
-      description: A response containing an `Artifact` entity.
-    ArtifactListResponse:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ArtifactList"
-      description: A response containing a list of `Artifact` entities.
+        - $ref: "#/components/schemas/WithOne"
+        - $ref: "#/components/schemas/WithTwo"
+        - $ref: "#/components/schemas/WithThree"
+    ComponentTwo:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/WithOne"
+        - $ref: "#/components/schemas/WithTwo"
+        - $ref: "#/components/schemas/WithThree"

@@ -14,7 +14,7 @@ from kiota_serialization_text.text_serialization_writer_factory import TextSeria
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from .api.api_request_builder import ApiRequestBuilder
+    from .one.one_request_builder import OneRequestBuilder
 
 class ApiClient(BaseRequestBuilder):
     """
@@ -36,17 +36,14 @@ class ApiClient(BaseRequestBuilder):
         register_default_deserializer(JsonParseNodeFactory)
         register_default_deserializer(TextParseNodeFactory)
         register_default_deserializer(FormParseNodeFactory)
-        if not self.request_adapter.base_url:
-            self.request_adapter.base_url = "https://localhost:8080"
-        self.path_parameters["base_url"] = self.request_adapter.base_url
     
     @property
-    def api(self) -> ApiRequestBuilder:
+    def one(self) -> OneRequestBuilder:
         """
-        The api property
+        The one property
         """
-        from .api.api_request_builder import ApiRequestBuilder
+        from .one.one_request_builder import OneRequestBuilder
 
-        return ApiRequestBuilder(self.request_adapter, self.path_parameters)
+        return OneRequestBuilder(self.request_adapter, self.path_parameters)
     
 
