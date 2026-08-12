@@ -79,6 +79,11 @@ public partial class RubyRefiner : CommonLanguageRefiner, ILanguageRefiner
                 "MicrosoftKiotaAbstractions",
                 true
             );
+            AddPrimaryErrorMessage(generatedCode,
+                "primary_error_message",
+                () => new CodeType { Name = "string", IsNullable = false, IsExternal = true },
+                true
+            );
             ReplaceReservedNames(generatedCode, reservedNamesProvider, x => $"{x}_escaped");
             AddGetterAndSetterMethods(generatedCode,
                 [

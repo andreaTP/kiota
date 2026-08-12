@@ -214,6 +214,19 @@ public class RubyLanguageRefinerTests
         Assert.Equal("MicrosoftKiotaAbstractions::ISODuration", method.ReturnType.Name);
     }
     [Fact]
+    public async Task AddsPrimaryErrorMessageAsync()
+    {
+        var model = root.AddClass(new CodeClass
+        {
+            Name = "model",
+            Kind = CodeClassKind.Model,
+            IsErrorDefinition = true,
+        }).First();
+        await ILanguageRefiner.RefineAsync(new GenerationConfiguration { Language = GenerationLanguage.Ruby }, root, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Contains("primary_error_message", model.Properties.Select(x => x?.Name));
+        Assert.Contains(CodePropertyKind.ErrorMessageOverride, model.Properties.Select(x => x.Kind));
+    }
+    [Fact]
     public async Task AddNamespaceModuleImportsAsync()
     {
         var declaration = parentClass.StartBlock;
