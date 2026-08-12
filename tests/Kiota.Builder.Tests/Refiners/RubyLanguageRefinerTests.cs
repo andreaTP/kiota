@@ -194,6 +194,25 @@ public class RubyLanguageRefinerTests
         Assert.Equal("Time", method.ReturnType.Name);
     }
     [Fact]
+    public async Task ReplacesGuidByNativeTypeAsync()
+    {
+        var model = root.AddClass(new CodeClass
+        {
+            Name = "model",
+            Kind = CodeClassKind.Model
+        }).First();
+        var method = model.AddMethod(new CodeMethod
+        {
+            Name = "method",
+            ReturnType = new CodeType
+            {
+                Name = "Guid"
+            },
+        }).First();
+        await ILanguageRefiner.RefineAsync(new GenerationConfiguration { Language = GenerationLanguage.Ruby }, root, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("String", method.ReturnType.Name);
+    }
+    [Fact]
     public async Task ReplacesDurationByNativeTypeAsync()
     {
         var model = root.AddClass(new CodeClass

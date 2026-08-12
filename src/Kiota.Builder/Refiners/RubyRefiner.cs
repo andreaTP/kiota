@@ -254,6 +254,7 @@ public partial class RubyRefiner : CommonLanguageRefiner, ILanguageRefiner
                                     IsExternal = true,
                                 },
                             })},
+        {"Guid", ("String", null)},
     };
     private static void CorrectPropertyType(CodeProperty currentProperty)
     {
